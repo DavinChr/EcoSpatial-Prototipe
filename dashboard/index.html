@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoSpatial — Dashboard Intelijen RTH Kota Bandung</title>
+  <meta name="description" content="Sistem intelijen spasial EcoSpatial untuk mitigasi krisis Ruang Terbuka Hijau (RTH) Kota Bandung. Visualisasi NDVI, LST, dan urgensi penambahan RTH per kecamatan." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Leaflet.heat -->
+  <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HEADER ═══ -->
+<header id="app-header">
+  <div class="header-brand">
+    <div class="brand-icon">🌿</div>
+    <div>
+      <span class="brand-title">EcoSpatial</span>
+      <span class="brand-sub">Intelligence Platform</span>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a href="#map-section" class="nav-link active" id="nav-map">🗺 Peta</a>
+    <a href="#metrics-section" class="nav-link" id="nav-metrics">📊 Metrik</a>
+    <a href="#charts-section" class="nav-link" id="nav-charts">📈 Analisis</a>
+    <a href="#table-section" class="nav-link" id="nav-table">📋 Tabel</a>
+  </nav>
+  <div class="header-meta">
+    <span class="badge-live">● LIVE</span>
+    <span class="header-date" id="header-date"></span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════ HERO ═══ -->
+<section class="hero-banner">
+  <div class="hero-content">
+    <div class="hero-tag">🛰 Sentinel-2 × AI Analysis</div>
+    <h1 class="hero-title">Krisis RTH Kota Bandung</h1>
+    <p class="hero-desc">Sistem deteksi dan klasifikasi urgensi Ruang Terbuka Hijau berbasis citra satelit & kecerdasan buatan untuk 30 kecamatan Kota Bandung</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-val" id="hero-rth-current">—</span>
+        <span class="hero-stat-label">RTH Aktual (AI)</span>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-stat">
+        <span class="hero-stat-val hero-stat-target">30%</span>
+        <span class="hero-stat-label">Target Nasional</span>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-stat">
+        <span class="hero-stat-val hero-stat-danger" id="hero-high-count">—</span>
+        <span class="hero-stat-label">Kecamatan Kritis</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="planet-ring">
+      <div class="planet-core">
+        <span id="rth-donut-label">—</span>
+        <small>RTH Kota</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ METRIC CARDS ═══ -->
+<section id="metrics-section" class="metrics-section">
+  <div class="metrics-grid">
+
+    <div class="metric-card card-temp" id="card-lst">
+      <div class="card-icon-wrap">🌡</div>
+      <div class="card-body">
+        <div class="card-value" id="metric-lst">—</div>
+        <div class="card-label">Suhu Permukaan Rata-Rata (LST)</div>
+        <div class="card-sub" id="metric-lst-sub">Land Surface Temperature</div>
+      </div>
+      <div class="card-badge card-badge-warning">Sentinel TIRS</div>
+    </div>
+
+    <div class="metric-card card-green" id="card-rth">
+      <div class="card-icon-wrap">🌳</div>
+      <div class="card-body">
+        <div class="card-value" id="metric-rth">—</div>
+        <div class="card-label">Total RTH Terdeteksi AI</div>
+        <div class="card-sub" id="metric-rth-sub">NDVI-derived vegetation area</div>
+      </div>
+      <div class="card-badge card-badge-green">NDVI Analysis</div>
+    </div>
+
+    <div class="metric-card card-urgent" id="card-urgent">
+      <div class="card-icon-wrap">🚨</div>
+      <div class="card-body">
+        <div class="card-value" id="metric-urgent">—</div>
+        <div class="card-label">Kecamatan Urgensi Tertinggi</div>
+        <div class="card-sub" id="metric-urgent-sub">Skor urgency tertinggi</div>
+      </div>
+      <div class="card-badge card-badge-danger">HIGH PRIORITY</div>
+    </div>
+
+    <div class="metric-card card-blue" id="card-ndvi">
+      <div class="card-icon-wrap">🛰</div>
+      <div class="card-body">
+        <div class="card-value" id="metric-ndvi">—</div>
+        <div class="card-label">NDVI Rata-Rata Kota</div>
+        <div class="card-sub">Normalized Difference Vegetation Index</div>
+      </div>
+      <div class="card-badge card-badge-blue">Sentinel-2 B8/B4</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ MAP ═══ -->
+<section id="map-section" class="map-section">
+  <div class="section-header">
+    <h2 class="section-title">🗺 Peta Spasial Interaktif</h2>
+    <div class="map-controls">
+      <button class="map-btn active" id="btn-layer-heatmap" onclick="toggleLayer('heatmap')">🔥 Kepadatan</button>
+      <button class="map-btn" id="btn-layer-rth" onclick="toggleLayer('rth')">🌿 RTH AI</button>
+      <button class="map-btn" id="btn-layer-urgency" onclick="toggleLayer('urgency')">🎯 Urgensi</button>
+    </div>
+  </div>
+  <div class="map-wrapper">
+    <div id="bandung-map"></div>
+    <div class="map-legend" id="map-legend">
+      <div class="legend-title">Klasifikasi Urgensi</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>HIGH PRIORITY — RTH &lt; 17%</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f97316"></span>MEDIUM PRIORITY — RTH 17–25%</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>LOW PRIORITY — RTH &gt; 25%</div>
+    </div>
+    <div class="map-info-panel" id="map-info-panel">
+      <div class="info-title">Klik kecamatan untuk detail</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ CHARTS ═══ -->
+<section id="charts-section" class="charts-section">
+  <div class="section-header">
+    <h2 class="section-title">📈 Analisis Komparatif</h2>
+  </div>
+  <div class="charts-grid">
+
+    <!-- Comparison: Public RTH vs AI RTH -->
+    <div class="chart-card chart-wide">
+      <div class="chart-card-header">
+        <h3 class="chart-title">Perbandingan Luas RTH: Data Publik vs Deteksi AI (Satelit)</h3>
+        <div class="chart-legend-inline">
+          <span class="cleg cleg-pub">■ Data Publik (Pemerintah)</span>
+          <span class="cleg cleg-ai">■ Deteksi Satelit AI (NDVI)</span>
+          <span class="cleg cleg-target">— Target 17%</span>
+        </div>
+      </div>
+      <div class="chart-container" style="height: 340px;">
+        <canvas id="chart-rth-comparison"></canvas>
+      </div>
+    </div>
+
+    <!-- Urgency Distribution Doughnut -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h3 class="chart-title">Distribusi Urgensi RTH</h3>
+      </div>
+      <div class="chart-container" style="height: 280px;">
+        <canvas id="chart-urgency-donut"></canvas>
+      </div>
+    </div>
+
+    <!-- NDVI vs LST Scatter -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h3 class="chart-title">NDVI vs LST per Kecamatan</h3>
+        <p class="chart-subtitle">Semakin tinggi vegetasi → semakin rendah suhu permukaan</p>
+      </div>
+      <div class="chart-container" style="height: 280px;">
+        <canvas id="chart-ndvi-lst"></canvas>
+      </div>
+    </div>
+
+    <!-- RTH Rasio Bar Chart -->
+    <div class="chart-card chart-wide">
+      <div class="chart-card-header">
+        <h3 class="chart-title">Rasio RTH per Kecamatan vs Target 17% & 30%</h3>
+      </div>
+      <div class="chart-container" style="height: 360px;">
+        <canvas id="chart-rasio-rth"></canvas>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ TABLE ═══ -->
+<section id="table-section" class="table-section">
+  <div class="section-header">
+    <h2 class="section-title">📋 Data Klasifikasi Lengkap</h2>
+    <div class="table-controls">
+      <input type="text" id="table-search" placeholder="🔍 Cari kecamatan..." class="table-search" oninput="filterTable()" />
+      <select id="table-filter" onchange="filterTable()" class="table-filter-select">
+        <option value="all">Semua Urgensi</option>
+        <option value="HIGH PRIORITY">🔴 HIGH PRIORITY</option>
+        <option value="MEDIUM PRIORITY">🟠 MEDIUM PRIORITY</option>
+        <option value="LOW PRIORITY">🟢 LOW PRIORITY</option>
+      </select>
+      <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table" id="main-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Kecamatan ↕</th>
+          <th onclick="sortTable(1)">RTH Publik (%) ↕</th>
+          <th onclick="sortTable(2)">RTH AI (%) ↕</th>
+          <th onclick="sortTable(3)">Kepadatan (jiwa/km²) ↕</th>
+          <th onclick="sortTable(4)">NDVI ↕</th>
+          <th onclick="sortTable(5)">LST (°C) ↕</th>
+          <th onclick="sortTable(6)">Skor Urgency ↕</th>
+          <th>Klasifikasi</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Filled by JS -->
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ FOOTER ═══ -->
+<footer class="app-footer">
+  <div class="footer-content">
+    <div class="footer-brand">🌿 EcoSpatial v1.0 — Sistem Intelijen RTH Kota Bandung</div>
+    <div class="footer-meta">
+      Data: Open Data Kota Bandung · Sentinel-2 NDVI · BPS 2025
+      <span class="footer-sep">|</span>
+      Dibangun dengan Repository Pattern · Python · JavaScript
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════ KECAMATAN DETAIL MODAL ═══ -->
+<div class="modal-overlay" id="kec-modal" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-header" id="modal-header"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
