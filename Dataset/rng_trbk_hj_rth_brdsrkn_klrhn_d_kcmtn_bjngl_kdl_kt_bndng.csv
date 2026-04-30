@@ -1,0 +1,3 @@
+id,kode_provinsi,nama_provinsi,bps_kode_kabupaten_kota,bps_nama_kabupaten_kota,bps_kode_kecamatan,bps_nama_kecamatan,bps_kode_desa_kelurahan,bps_desa_kelurahan,kemendagri_kode_kecamatan,kemendagri_nama_kecamatan,kemendagri_kode_desa_kelurahan,kemendagri_nama_desa_kelurahan,lokasi_rth,jenis_rth,tahun
+1,32,JAWA BARAT,3273,KOTA BANDUNG,3273040,BOJONGLOA KIDUL,3273040006,SITUSAEUR,32.73.17,BOJONGLOA KIDUL,32.73.17.1001,SITUSAEUR,JL. PETA,VERTIKAL GARDEN TANAMAN HIAS,2019
+2,32,JAWA BARAT,3273,KOTA BANDUNG,3273040,BOJONGLOA KIDUL,3273040005,KEBON LEGA,32.73.17,BOJONGLOA KIDUL,32.73.17.1002,KEBON LEGA,JL. SOEKARNO HATTA,VERTIKAL GARDEN TANAMAN HIAS,2019
