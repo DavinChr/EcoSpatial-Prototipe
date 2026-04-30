@@ -132,7 +132,14 @@ function updateDashboard() {
     const avgSelisih = (filtered.reduce((sum, d) => sum + (d.rth_admin - d.rth_ai), 0) / filtered.length).toFixed(1);
 
     document.getElementById('metric-kritis').innerText = state.selectedKecamatan === 'ALL' ? mostKritis.kecamatan : state.selectedKecamatan;
-    document.getElementById('metric-delta').innerText = `${avgDelta}%`;
+    
+    // Task 3: Color coding angka perubahan (Delta)
+    const deltaEl = document.getElementById('metric-delta');
+    const isPositive = avgDelta >= 0;
+    deltaEl.innerText = `${isPositive ? '+' : ''}${avgDelta}%`;
+    deltaEl.className = `metric-val ${isPositive ? 'text-emerald' : 'text-red'}`;
+    if(isPositive) { deltaEl.style.color = 'var(--emerald)'; } else { deltaEl.style.color = ''; }
+
     document.getElementById('metric-selisih').innerText = `${avgSelisih}%`;
 
     // Dynamic Insight Strategy (Content Efficiency)
@@ -156,17 +163,63 @@ function initMap() {
     state.layerAdmin = L.layerGroup();
     state.layerAI = L.layerGroup();
 
-    DUMMY_DATA.forEach(d => {
-        // Layer A: Poligon Administratif (Simulasi menggunakan circle besar)
-        const poly = L.circle([d.lat, d.lng], {
-            color: '#059669', // Emerald
-            fillColor: '#34d399',
-            fillOpacity: 0.3,
-            weight: 2,
-            radius: d.rth_admin * 60 // Skala representasi administratif
-        }).bindPopup(`<b>${d.kecamatan}</b><br>Klaim RTH Pemerintah: ${d.rth_admin}%`);
-        state.layerAdmin.addLayer(poly);
+    // Task 2: GeoJSON Boundary Fetch & Interaction Overlay
+    fetch('https://raw.githubusercontent.com/tigorlazuardi/bandung/master/bandung.geojson')
+        .then(res => {
+            if (!res.ok) throw new Error("Gagal fetch batas geojson");
+            return res.json();
+        })
+        .then(data => {
+            const geojsonLayer = L.geoJSON(data, {
+                style: function (feature) {
+                    return {
+                        color: '#059669', // Border hijau emerald yang tegas
+                        fillColor: '#34d399',
+                        fillOpacity: 0.1,
+                        weight: 2
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    const kecName = feature.properties.KECAMATAN || feature.properties.name || "Kecamatan";
+                    
+                    // Interaction Overlay (Hover & Click)
+                    layer.on({
+                        mouseover: function(e) {
+                            const l = e.target;
+                            l.setStyle({ fillOpacity: 0.4, weight: 3 });
+                            l.bringToFront();
+                        },
+                        mouseout: function(e) {
+                            geojsonLayer.resetStyle(e.target);
+                        },
+                        click: function(e) {
+                            const matchingData = DUMMY_DATA.find(d => d.kecamatan.toLowerCase() === kecName.toLowerCase());
+                            if(matchingData) {
+                                document.getElementById('kecamatan-filter').value = matchingData.kecamatan;
+                                window.onKecamatanChange(); // Memperbarui metrik di sidebar
+                            }
+                        }
+                    });
+                    layer.bindPopup(`<b>${kecName}</b><br>Klik untuk melihat metrik wilayah ini.`);
+                }
+            });
+            state.layerAdmin.addLayer(geojsonLayer);
+        })
+        .catch(err => {
+            console.warn("Fallback ke poligon sirkular:", err);
+            DUMMY_DATA.forEach(d => {
+                const poly = L.circle([d.lat, d.lng], {
+                    color: '#059669',
+                    fillColor: '#34d399',
+                    fillOpacity: 0.3,
+                    weight: 2,
+                    radius: d.rth_admin * 60
+                }).bindPopup(`<b>${d.kecamatan}</b><br>Klaim RTH Pemerintah: ${d.rth_admin}%`);
+                state.layerAdmin.addLayer(poly);
+            });
+        });
 
+    DUMMY_DATA.forEach(d => {
         // Layer B: Raw Scatter Data Pixel-Based
         // Titik putih: Vegetasi. Titik hitam: Non-tanaman.
         const pixelCount = 150; // Jumlah sampel piksel per kecamatan

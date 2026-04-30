@@ -168,6 +168,8 @@ body {
   flex-direction: column;
   padding: 24px;
   height: 100%;
+  overflow-y: auto;
+  scroll-behavior: smooth;
 }
 .tab-pane.active { display: flex; }
 
