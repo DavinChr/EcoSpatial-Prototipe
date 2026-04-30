@@ -1,552 +1,258 @@
-/**
- * EcoSpatial Dashboard Logic
- * Menangani UI, Map Rendering, Charts, dan Simulasi API (Lakehouse / Azure ML)
- */
-
-// ============================================================================
-// 1. STATE MANAGEMENT & API STUB (Task 3: Integration)
-// ============================================================================
+// dashboard.js
 
 const state = {
-    geojsonData: null,
-    analyticsData: [],
-    currentLayer: 'heatmap', // 'heatmap', 'rth', 'urgency'
-    mapInstance: null,
-    heatLayer: null,
-    polygonLayer: null
+    data: [],
+    map: null,
+    layerAdmin: null,
+    layerAI: null,
+    timeChart: null,
+    compareChart: null,
+    selectedKecamatan: 'ALL'
 };
 
-/**
- * Mensimulasikan pemanggilan API ke Azure ML Endpoint / Microsoft Fabric Lakehouse.
- * Dalam produksi, ini akan menggunakan fetch() ke REST API backend.
- */
-async function fetchAnalyticsData() {
-    return new Promise((resolve, reject) => {
-        console.log("[API] Fetching data from Lakehouse/Azure ML...");
-        
-        // Simulasi network delay
-        setTimeout(() => {
-            try {
-                // Simulasi data hasil dari UrgancyService backend
-                const mockData = [
-                    { kecamatan: 'Andir', rasio_rth: 12.5, rasio_rth_ndvi: 15.2, kepadatan: 23577, ndvi: 0.15, lst: 32.4, skor: 85, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Astana Anyar', rasio_rth: 10.1, rasio_rth_ndvi: 13.5, kepadatan: 27468, ndvi: 0.13, lst: 33.1, skor: 92, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Babakan Ciparay', rasio_rth: 14.2, rasio_rth_ndvi: 16.8, kepadatan: 20160, ndvi: 0.14, lst: 31.8, skor: 80, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Bandung Kidul', rasio_rth: 18.5, rasio_rth_ndvi: 21.0, kepadatan: 11301, ndvi: 0.20, lst: 29.5, skor: 55, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Bandung Kulon', rasio_rth: 16.3, rasio_rth_ndvi: 18.4, kepadatan: 19656, ndvi: 0.17, lst: 30.2, skor: 68, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Bandung Wetan', rasio_rth: 20.1, rasio_rth_ndvi: 22.5, kepadatan: 8391, ndvi: 0.21, lst: 28.9, skor: 45, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Batununggal', rasio_rth: 11.2, rasio_rth_ndvi: 14.1, kepadatan: 25236, ndvi: 0.12, lst: 32.8, skor: 88, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Bojongloa Kaler', rasio_rth: 9.5, rasio_rth_ndvi: 12.0, kepadatan: 39906, ndvi: 0.10, lst: 34.0, skor: 98, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Bojongloa Kidul', rasio_rth: 15.1, rasio_rth_ndvi: 17.5, kepadatan: 16907, ndvi: 0.16, lst: 30.5, skor: 65, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Buahbatu', rasio_rth: 28.5, rasio_rth_ndvi: 31.2, kepadatan: 13955, ndvi: 0.30, lst: 27.5, skor: 25, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Cibeunying Kaler', rasio_rth: 32.1, rasio_rth_ndvi: 35.8, kepadatan: 15260, ndvi: 0.35, lst: 26.8, skor: 20, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Cibeunying Kidul', rasio_rth: 13.8, rasio_rth_ndvi: 16.5, kepadatan: 27432, ndvi: 0.16, lst: 31.5, skor: 82, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Cibiru', rasio_rth: 26.4, rasio_rth_ndvi: 29.5, kepadatan: 11079, ndvi: 0.29, lst: 27.8, skor: 30, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Cicendo', rasio_rth: 14.5, rasio_rth_ndvi: 16.9, kepadatan: 12363, ndvi: 0.16, lst: 30.8, skor: 70, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Cidadap', rasio_rth: 55.2, rasio_rth_ndvi: 60.1, kepadatan: 6467, ndvi: 0.58, lst: 24.5, skor: 5, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Cinambo', rasio_rth: 38.5, rasio_rth_ndvi: 42.0, kepadatan: 6020, ndvi: 0.40, lst: 26.0, skor: 15, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Coblong', rasio_rth: 40.2, rasio_rth_ndvi: 45.5, kepadatan: 15740, ndvi: 0.42, lst: 25.5, skor: 18, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Gedebage', rasio_rth: 42.1, rasio_rth_ndvi: 46.8, kepadatan: 4191, ndvi: 0.44, lst: 25.2, skor: 12, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Kiaracondong', rasio_rth: 12.5, rasio_rth_ndvi: 15.0, kepadatan: 22692, ndvi: 0.13, lst: 32.5, skor: 86, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Lengkong', rasio_rth: 15.2, rasio_rth_ndvi: 17.8, kepadatan: 12058, ndvi: 0.15, lst: 31.0, skor: 72, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Mandalajati', rasio_rth: 34.5, rasio_rth_ndvi: 38.2, kepadatan: 15319, ndvi: 0.36, lst: 26.5, skor: 22, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Panyileukan', rasio_rth: 25.8, rasio_rth_ndvi: 28.5, kepadatan: 7643, ndvi: 0.28, lst: 28.0, skor: 32, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Rancasari', rasio_rth: 29.5, rasio_rth_ndvi: 32.4, kepadatan: 12335, ndvi: 0.31, lst: 27.2, skor: 28, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Regol', rasio_rth: 13.5, rasio_rth_ndvi: 16.2, kepadatan: 17048, ndvi: 0.14, lst: 31.8, skor: 78, urgensi: 'HIGH PRIORITY' },
-                    { kecamatan: 'Sukajadi', rasio_rth: 16.8, rasio_rth_ndvi: 19.5, kepadatan: 19463, ndvi: 0.17, lst: 30.1, skor: 66, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Sukasari', rasio_rth: 36.5, rasio_rth_ndvi: 40.2, kepadatan: 12201, ndvi: 0.38, lst: 26.2, skor: 20, urgensi: 'LOW PRIORITY' },
-                    { kecamatan: 'Sumur Bandung', rasio_rth: 17.5, rasio_rth_ndvi: 20.1, kepadatan: 10866, ndvi: 0.18, lst: 29.8, skor: 58, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Ujungberung', rasio_rth: 23.5, rasio_rth_ndvi: 26.5, kepadatan: 14424, ndvi: 0.25, lst: 28.5, skor: 38, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Antapani', rasio_rth: 20.5, rasio_rth_ndvi: 23.2, kepadatan: 19046, ndvi: 0.22, lst: 29.2, skor: 50, urgensi: 'MEDIUM PRIORITY' },
-                    { kecamatan: 'Arcamanik', rasio_rth: 31.5, rasio_rth_ndvi: 35.0, kepadatan: 10505, ndvi: 0.33, lst: 26.9, skor: 24, urgensi: 'LOW PRIORITY' }
-                ];
-                
-                if (!mockData || mockData.length === 0) {
-                    throw new Error("Data Lakehouse kosong atau tidak ditemukan.");
-                }
-                
-                resolve(mockData);
-            } catch (error) {
-                console.error("[API Error]", error);
-                reject(error);
-            }
-        }, 800); // delay 800ms
+// Simulasi data untuk 10 Kecamatan dengan delta NDVI dan selisih data
+const DUMMY_DATA = [
+    { kecamatan: 'Andir', rth_admin: 15.0, rth_ai: 8.5, ndvi_delta: -4.2, temp_avg: 32.4, lat: -6.914, lng: 107.585 },
+    { kecamatan: 'Astana Anyar', rth_admin: 13.5, rth_ai: 7.1, ndvi_delta: -5.5, temp_avg: 33.1, lat: -6.932, lng: 107.598 },
+    { kecamatan: 'Babakan Ciparay', rth_admin: 16.8, rth_ai: 10.2, ndvi_delta: -3.8, temp_avg: 31.8, lat: -6.939, lng: 107.575 },
+    { kecamatan: 'Bandung Kidul', rth_admin: 21.0, rth_ai: 18.5, ndvi_delta: -1.0, temp_avg: 29.5, lat: -6.965, lng: 107.625 },
+    { kecamatan: 'Buahbatu', rth_admin: 31.2, rth_ai: 28.5, ndvi_delta: 0.5, temp_avg: 27.5, lat: -6.950, lng: 107.645 },
+    { kecamatan: 'Coblong', rth_admin: 45.5, rth_ai: 40.2, ndvi_delta: -1.2, temp_avg: 25.5, lat: -6.885, lng: 107.613 },
+    { kecamatan: 'Kiaracondong', rth_admin: 15.0, rth_ai: 6.5, ndvi_delta: -6.1, temp_avg: 32.5, lat: -6.925, lng: 107.643 },
+    { kecamatan: 'Sumur Bandung', rth_admin: 20.1, rth_ai: 12.5, ndvi_delta: -3.2, temp_avg: 29.8, lat: -6.916, lng: 107.610 },
+    { kecamatan: 'Ujungberung', rth_admin: 23.5, rth_ai: 21.5, ndvi_delta: -0.5, temp_avg: 28.5, lat: -6.905, lng: 107.705 },
+    { kecamatan: 'Antapani', rth_admin: 20.5, rth_ai: 18.2, ndvi_delta: -1.5, temp_avg: 29.2, lat: -6.918, lng: 107.656 }
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('header-date').innerText = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    populateDropdown();
+    initMap();
+    updateDashboard();
+    initCharts();
+});
+
+// TAB NAVIGATION
+window.switchTab = function(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+
+    // Resize Leaflet and ApexCharts to avoid rendering issues in hidden containers
+    if(tabId === 'tab-spasial' && state.map) {
+        setTimeout(() => state.map.invalidateSize(), 100);
+    }
+    if(tabId === 'tab-waktu' && state.timeChart) {
+        window.dispatchEvent(new Event('resize'));
+    }
+    if(tabId === 'tab-banding' && state.compareChart) {
+        window.dispatchEvent(new Event('resize'));
+    }
+}
+
+// DROPDOWN FILTER
+function populateDropdown() {
+    const sel = document.getElementById('kecamatan-filter');
+    DUMMY_DATA.sort((a,b) => a.kecamatan.localeCompare(b.kecamatan)).forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.kecamatan;
+        opt.innerText = `📍 Kec. ${d.kecamatan}`;
+        sel.appendChild(opt);
     });
 }
 
-/**
- * Fetch dummy GeoJSON untuk batas kecamatan Kota Bandung.
- * Dalam real case, fetch dari file / endpoint GIS.
- */
-async function fetchGeoJSON() {
-    // Simulasi struktur GeoJSON dasar untuk marker (karena tidak ada file geografi asli di frontend)
-    // Mapbox/Leaflet butuh lat/long. Kita generate dummy coordinates untuk 30 kecamatan di Bandung.
-    const baseLat = -6.9147;
-    const baseLng = 107.6098;
+window.onKecamatanChange = function() {
+    state.selectedKecamatan = document.getElementById('kecamatan-filter').value;
+    updateDashboard();
     
-    return {
-        type: "FeatureCollection",
-        features: state.analyticsData.map((d, i) => {
-            // Sebar titik secara acak di sekitar pusat Bandung
-            const latOffset = (Math.random() - 0.5) * 0.1;
-            const lngOffset = (Math.random() - 0.5) * 0.1;
-            
-            return {
-                type: "Feature",
-                properties: {
-                    kecamatan: d.kecamatan,
-                    ...d
-                },
-                geometry: {
-                    type: "Point",
-                    coordinates: [baseLng + lngOffset, baseLat + latOffset]
-                }
-            };
-        })
-    };
-}
-
-
-// ============================================================================
-// 2. MAP RENDERING (Task 2: Map Rendering)
-// ============================================================================
-
-function initMap() {
-    // Pusat Kota Bandung
-    state.mapInstance = L.map('bandung-map').setView([-6.9147, 107.6098], 12);
-
-    // Dark theme basemap dari CartoDB
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(state.mapInstance);
-}
-
-function getUrgencyColor(urgency) {
-    if (urgency === 'HIGH PRIORITY') return '#ef4444'; // Red
-    if (urgency === 'MEDIUM PRIORITY') return '#f97316'; // Orange
-    return '#22c55e'; // Green
-}
-
-/**
- * Render Heatmap Kepadatan Penduduk
- */
-function renderHeatmap() {
-    if (state.heatLayer) state.mapInstance.removeLayer(state.heatLayer);
-    if (state.polygonLayer) state.mapInstance.removeLayer(state.polygonLayer);
-    
-    const heatData = state.geojsonData.features.map(f => [
-        f.geometry.coordinates[1], // lat
-        f.geometry.coordinates[0], // lng
-        f.properties.kepadatan / 40000 // intensity normalized
-    ]);
-
-    state.heatLayer = L.heatLayer(heatData, {
-        radius: 25,
-        blur: 15,
-        maxZoom: 12,
-        gradient: {0.4: 'blue', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red'}
-    }).addTo(state.mapInstance);
-}
-
-/**
- * Render Layer Klasifikasi Vegetasi / Urgensi
- */
-function renderVegetationLayer(mode = 'urgency') {
-    if (state.heatLayer) state.mapInstance.removeLayer(state.heatLayer);
-    if (state.polygonLayer) state.mapInstance.removeLayer(state.polygonLayer);
-
-    state.polygonLayer = L.geoJSON(state.geojsonData, {
-        pointToLayer: function (feature, latlng) {
-            let color = '#34d399';
-            let radius = 8;
-            
-            if (mode === 'urgency') {
-                color = getUrgencyColor(feature.properties.urgensi);
-                radius = 10;
-            } else if (mode === 'rth') {
-                // RTH AI: lebih besar RTH, lebih hijau dan besar
-                const rth = feature.properties.rasio_rth_ndvi;
-                color = rth > 25 ? '#22c55e' : (rth > 17 ? '#34d399' : '#10b981');
-                radius = 5 + (rth / 5);
-            }
-
-            const marker = L.circleMarker(latlng, {
-                radius: radius,
-                fillColor: color,
-                color: '#fff',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
-            });
-
-            // Interaktivitas: Update Metric Card saat diklik
-            marker.on('click', () => {
-                updateDynamicMetrics(feature.properties);
-            });
-
-            return marker;
-        },
-        onEachFeature: function (feature, layer) {
-            const p = feature.properties;
-            const popupContent = `
-                <div style="font-family: 'Inter', sans-serif;">
-                    <h4 style="margin:0 0 5px 0; color: #38bdf8;">Kecamatan ${p.kecamatan}</h4>
-                    <p style="margin:0; font-size: 12px;"><strong>Urgensi:</strong> <span style="color:${getUrgencyColor(p.urgensi)}">${p.urgensi}</span></p>
-                    <p style="margin:0; font-size: 12px;"><strong>RTH Satelit (NDVI):</strong> ${p.rasio_rth_ndvi}%</p>
-                    <p style="margin:0; font-size: 12px;"><strong>LST (Suhu):</strong> ${p.lst}°C</p>
-                </div>
-            `;
-            layer.bindPopup(popupContent);
+    if (state.selectedKecamatan !== 'ALL') {
+        const data = DUMMY_DATA.find(d => d.kecamatan === state.selectedKecamatan);
+        if (data) {
+            state.map.flyTo([data.lat, data.lng], 14, { duration: 1.5 });
         }
-    }).addTo(state.mapInstance);
-}
-
-// Global toggle fungsi untuk dipanggil dari HTML onclick
-window.toggleLayer = function(layerType) {
-    document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-layer-${layerType}`).classList.add('active');
-    
-    state.currentLayer = layerType;
-    if (layerType === 'heatmap') {
-        renderHeatmap();
     } else {
-        renderVegetationLayer(layerType);
+        state.map.flyTo([-6.92, 107.60], 12, { duration: 1.5 });
     }
-};
+}
 
+// METRICS & INSIGHTS
+function updateDashboard() {
+    let filtered = DUMMY_DATA;
+    if (state.selectedKecamatan !== 'ALL') {
+        filtered = DUMMY_DATA.filter(d => d.kecamatan === state.selectedKecamatan);
+    }
 
-// ============================================================================
-// 3. CHARTS GENERATION (Task 2: Chart Generation)
-// ============================================================================
+    // Hitung inkonsistensi
+    const sortedKritis = [...DUMMY_DATA].sort((a,b) => (b.rth_admin - b.rth_ai) - (a.rth_admin - a.rth_ai));
+    const mostKritis = sortedKritis[0];
 
-function renderCharts() {
-    Chart.defaults.color = '#94a3b8';
-    Chart.defaults.font.family = 'Inter, sans-serif';
+    const avgDelta = (filtered.reduce((sum, d) => sum + d.ndvi_delta, 0) / filtered.length).toFixed(1);
+    const avgSelisih = (filtered.reduce((sum, d) => sum + (d.rth_admin - d.rth_ai), 0) / filtered.length).toFixed(1);
 
-    const labels = state.analyticsData.map(d => d.kecamatan);
-    const dataPublik = state.analyticsData.map(d => d.rasio_rth);
-    const dataAI = state.analyticsData.map(d => d.rasio_rth_ndvi);
+    document.getElementById('metric-kritis').innerText = state.selectedKecamatan === 'ALL' ? mostKritis.kecamatan : state.selectedKecamatan;
+    document.getElementById('metric-delta').innerText = `${avgDelta}%`;
+    document.getElementById('metric-selisih').innerText = `${avgSelisih}%`;
 
-    // 1. Comparison Chart (Publik vs AI)
-    new Chart(document.getElementById('chart-rth-comparison'), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Data Publik (%)',
-                    data: dataPublik,
-                    borderColor: '#38bdf8',
-                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Deteksi AI/NDVI (%)',
-                    data: dataAI,
-                    borderColor: '#34d399',
-                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                annotation: {
-                    annotations: {
-                        line1: { type: 'line', yMin: 17, yMax: 17, borderColor: '#f97316', borderWidth: 2, borderDash: [5, 5] }
-                    }
-                }
+    // Dynamic Insight Strategy (Content Efficiency)
+    const insightBox = document.getElementById('data-insight');
+    if (state.selectedKecamatan === 'ALL') {
+        insightBox.innerHTML = `Secara agregat, Kota Bandung mengalami <strong>penurunan vegetasi sebesar ${Math.abs(avgDelta)}%</strong>. Terdapat rata-rata <strong>overclaim selisih data ${avgSelisih}%</strong> antara RTH administratif yang dilaporkan pemerintah dengan kondisi riil di lapangan berdasarkan satelit AI. Kecamatan <strong>${mostKritis.kecamatan}</strong> memiliki inkonsistensi tertinggi.`;
+    } else {
+        insightBox.innerHTML = `Kecamatan ${state.selectedKecamatan} memiliki selisih laporan RTH sebesar <strong>${avgSelisih}%</strong> dan mengalami penurunan kualitas NDVI sebesar <strong>${Math.abs(avgDelta)}%</strong> dalam 12 bulan terakhir. Intervensi penambahan ruang hijau mendesak diperlukan.`;
+    }
+}
+
+// SPATIAL MAP (Binary Vegetation & Overlay)
+function initMap() {
+    state.map = L.map('bandung-map', { zoomControl: true }).setView([-6.92, 107.60], 12);
+    
+    // Light Mode / High Contrast Basemap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(state.map);
+
+    state.layerAdmin = L.layerGroup();
+    state.layerAI = L.layerGroup();
+
+    DUMMY_DATA.forEach(d => {
+        // Layer A: Poligon Administratif (Simulasi menggunakan circle besar)
+        const poly = L.circle([d.lat, d.lng], {
+            color: '#059669', // Emerald
+            fillColor: '#34d399',
+            fillOpacity: 0.3,
+            weight: 2,
+            radius: d.rth_admin * 60 // Skala representasi administratif
+        }).bindPopup(`<b>${d.kecamatan}</b><br>Klaim RTH Pemerintah: ${d.rth_admin}%`);
+        state.layerAdmin.addLayer(poly);
+
+        // Layer B: Raw Scatter Data Pixel-Based
+        // Titik putih: Vegetasi. Titik hitam: Non-tanaman.
+        const pixelCount = 150; // Jumlah sampel piksel per kecamatan
+        for (let i = 0; i < pixelCount; i++) {
+            // Distribusi radius acak
+            const latOff = (Math.random() - 0.5) * 0.035;
+            const lngOff = (Math.random() - 0.5) * 0.035;
+            
+            // Probabilitas menjadi titik hijau/putih sesuai rth_ai riil
+            const isVegetation = Math.random() < (d.rth_ai / 100);
+            
+            const pixel = L.circleMarker([d.lat + latOff, d.lng + lngOff], {
+                radius: 2,
+                color: isVegetation ? '#94a3b8' : 'none', // Outline tipis untuk titik putih agar kontras di peta light
+                weight: isVegetation ? 1 : 0,
+                fillColor: isVegetation ? '#ffffff' : '#000000',
+                fillOpacity: isVegetation ? 0.9 : 0.6
+            });
+            state.layerAI.addLayer(pixel);
+        }
+    });
+
+    // Add both initially
+    state.layerAdmin.addTo(state.map);
+    state.layerAI.addTo(state.map);
+}
+
+window.updateMapLayers = function() {
+    const showAdmin = document.getElementById('layer-admin').checked;
+    const showAI = document.getElementById('layer-ai').checked;
+
+    if (showAdmin) state.map.addLayer(state.layerAdmin);
+    else state.map.removeLayer(state.layerAdmin);
+
+    if (showAI) state.map.addLayer(state.layerAI);
+    else state.map.removeLayer(state.layerAI);
+}
+
+// ANALYTICS & CHARTS (ApexCharts)
+function initCharts() {
+    // 1. Time-Series Chart (Zoomable)
+    // Simulasi data bulanan
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+    const tempTrend = [28, 28.5, 29, 30.1, 31, 31.5, 32, 32.8, 33.1, 32.5, 31, 30];
+    const ndviTrend = [0.4, 0.38, 0.35, 0.32, 0.30, 0.28, 0.25, 0.22, 0.20, 0.21, 0.24, 0.25];
+
+    const timeOptions = {
+        series: [{
+            name: 'Rata-rata Suhu Permukaan (°C)',
+            type: 'line',
+            data: tempTrend
+        }, {
+            name: 'Kerapatan NDVI',
+            type: 'area',
+            data: ndviTrend
+        }],
+        chart: {
+            height: '100%',
+            type: 'line',
+            toolbar: { 
+                show: true,
+                tools: { zoom: true, pan: true, reset: true }
             },
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, min: 0 }
-            }
-        }
-    });
-
-    // 2. Urgency Distribution Donut
-    const urgencies = state.analyticsData.reduce((acc, curr) => {
-        acc[curr.urgensi] = (acc[curr.urgensi] || 0) + 1;
-        return acc;
-    }, {});
-
-    new Chart(document.getElementById('chart-urgency-donut'), {
-        type: 'doughnut',
-        data: {
-            labels: ['HIGH PRIORITY', 'MEDIUM PRIORITY', 'LOW PRIORITY'],
-            datasets: [{
-                data: [urgencies['HIGH PRIORITY'], urgencies['MEDIUM PRIORITY'], urgencies['LOW PRIORITY']],
-                backgroundColor: ['#ef4444', '#f97316', '#22c55e'],
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
+            fontFamily: 'Inter, sans-serif'
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+        colors: ['#dc2626', '#059669'], // Merah tegas, Hijau emerald
+        stroke: { curve: 'smooth', width: [3, 2] },
+        fill: {
+            type: ['solid', 'gradient'],
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.3,
+                opacityTo: 0.1,
             }
-        }
-    });
-
-    // 3. NDVI vs LST Scatter Chart
-    const scatterData = state.analyticsData.map(d => ({
-        x: d.ndvi,
-        y: d.lst,
-        kecamatan: d.kecamatan
-    }));
-
-    new Chart(document.getElementById('chart-ndvi-lst'), {
-        type: 'scatter',
-        data: {
-            datasets: [{
-                label: 'Kecamatan',
-                data: scatterData,
-                backgroundColor: '#818cf8',
-                borderColor: '#38bdf8',
-                borderWidth: 1,
-                pointRadius: 6,
-                pointHoverRadius: 8
-            }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(ctx) {
-                            const point = ctx.raw;
-                            return `${point.kecamatan}: NDVI ${point.x}, LST ${point.y}°C`;
-                        }
-                    }
-                },
-                legend: { display: false }
-            },
-            scales: {
-                x: { title: { display: true, text: 'NDVI (Kerapatan Vegetasi)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                y: { title: { display: true, text: 'LST (°C)' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-            }
-        }
-    });
+        labels: months,
+        xaxis: { title: { text: 'Sumbu Waktu (Bulan)' } },
+        yaxis: [
+            { title: { text: 'Suhu Permukaan (°C)' }, min: 25, max: 35 },
+            { opposite: true, title: { text: 'Indeks NDVI' }, min: 0, max: 0.6 }
+        ],
+        legend: { position: 'top' }
+    };
 
-    // 4. Bar Chart RTH vs Target
-    new Chart(document.getElementById('chart-rasio-rth'), {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'RTH Aktual (AI)',
-                data: dataAI,
-                backgroundColor: dataAI.map(val => val < 17 ? '#ef4444' : (val < 25 ? '#f97316' : '#22c55e')),
+    state.timeChart = new ApexCharts(document.querySelector("#time-series-chart"), timeOptions);
+    state.timeChart.render();
+
+    // 2. Comparison Bar Chart
+    const sortedData = [...DUMMY_DATA].sort((a,b) => (b.rth_admin - b.rth_ai) - (a.rth_admin - a.rth_ai));
+    const categories = sortedData.map(d => d.kecamatan);
+    const adminData = sortedData.map(d => d.rth_admin);
+    const aiData = sortedData.map(d => d.rth_ai);
+
+    const compareOptions = {
+        series: [{
+            name: 'Layer A: Data Administratif (Laporan)',
+            data: adminData
+        }, {
+            name: 'Layer B: Hasil Satelit AI (Riil)',
+            data: aiData
+        }],
+        chart: {
+            type: 'bar',
+            height: '100%',
+            toolbar: { show: false },
+            fontFamily: 'Inter, sans-serif'
+        },
+        colors: ['#2563eb', '#059669'], // Biru untuk data pemerintah, Emerald untuk riil AI
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '60%',
                 borderRadius: 4
-            }]
+            },
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.05)' } }
-            }
+        dataLabels: { enabled: false },
+        stroke: { show: true, width: 2, colors: ['transparent'] },
+        xaxis: { categories: categories, title: { text: 'Kecamatan' } },
+        yaxis: { title: { text: 'Persentase Luasan (%)' } },
+        fill: { opacity: 1 },
+        tooltip: {
+            y: { formatter: function (val) { return val + "%" } }
         }
-    });
+    };
+
+    state.compareChart = new ApexCharts(document.querySelector("#comparison-chart"), compareOptions);
+    state.compareChart.render();
 }
-
-
-// ============================================================================
-// 4. DYNAMIC METRICS & UI UPDATE (Task 2: Dynamic Metrics)
-// ============================================================================
-
-function updateGlobalMetrics() {
-    const avgLst = (state.analyticsData.reduce((acc, curr) => acc + curr.lst, 0) / state.analyticsData.length).toFixed(1);
-    const avgNdvi = (state.analyticsData.reduce((acc, curr) => acc + curr.ndvi, 0) / state.analyticsData.length).toFixed(3);
-    const avgRthAi = (state.analyticsData.reduce((acc, curr) => acc + curr.rasio_rth_ndvi, 0) / state.analyticsData.length).toFixed(1);
-    
-    // Sort to find most urgent
-    const sorted = [...state.analyticsData].sort((a, b) => b.skor - a.skor);
-    const mostUrgent = sorted[0];
-
-    document.getElementById('metric-lst').innerText = `${avgLst}°C`;
-    document.getElementById('metric-rth').innerText = `${avgRthAi}%`;
-    document.getElementById('metric-ndvi').innerText = avgNdvi;
-    
-    document.getElementById('metric-urgent').innerText = mostUrgent.kecamatan;
-    document.getElementById('metric-urgent-sub').innerText = `Skor Urgensi: ${mostUrgent.skor}/100`;
-
-    // Hero stats update
-    document.getElementById('hero-rth-current').innerText = `${avgRthAi}%`;
-    document.getElementById('hero-high-count').innerText = state.analyticsData.filter(d => d.urgensi === 'HIGH PRIORITY').length;
-    document.getElementById('rth-donut-label').innerText = `${avgRthAi}%`;
-    
-    // Set current date
-    const d = new Date();
-    document.getElementById('header-date').innerText = d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-/**
- * Dipanggil saat marker kecamatan di peta diklik
- */
-function updateDynamicMetrics(properties) {
-    document.getElementById('metric-lst').innerText = `${properties.lst}°C`;
-    document.getElementById('metric-lst-sub').innerText = `Kec. ${properties.kecamatan}`;
-    
-    document.getElementById('metric-rth').innerText = `${properties.rasio_rth_ndvi}%`;
-    document.getElementById('metric-rth-sub').innerText = `Kec. ${properties.kecamatan}`;
-    
-    document.getElementById('metric-ndvi').innerText = properties.ndvi.toFixed(3);
-    
-    // Tampilkan modal detail
-    showKecamatanModal(properties);
-}
-
-
-// ============================================================================
-// 5. TABLE HANDLING
-// ============================================================================
-
-function renderTable(data = state.analyticsData) {
-    const tbody = document.getElementById('table-body');
-    tbody.innerHTML = '';
-
-    data.forEach(d => {
-        let badgeClass = d.urgensi === 'HIGH PRIORITY' ? 'badge-high' : 
-                         d.urgensi === 'MEDIUM PRIORITY' ? 'badge-medium' : 'badge-low';
-        
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${d.kecamatan}</td>
-            <td>${d.rasio_rth}%</td>
-            <td><strong>${d.rasio_rth_ndvi}%</strong></td>
-            <td>${d.kepadatan.toLocaleString()}</td>
-            <td>${d.ndvi}</td>
-            <td>${d.lst}</td>
-            <td>${d.skor}</td>
-            <td><span class="badge-urgency ${badgeClass}">● ${d.urgensi}</span></td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-window.filterTable = function() {
-    const searchTerm = document.getElementById('table-search').value.toLowerCase();
-    const filterTerm = document.getElementById('table-filter').value;
-
-    const filtered = state.analyticsData.filter(d => {
-        const matchSearch = d.kecamatan.toLowerCase().includes(searchTerm);
-        const matchFilter = filterTerm === 'all' || d.urgensi === filterTerm;
-        return matchSearch && matchFilter;
-    });
-
-    renderTable(filtered);
-}
-
-let sortAsc = true;
-window.sortTable = function(colIndex) {
-    const keys = ['kecamatan', 'rasio_rth', 'rasio_rth_ndvi', 'kepadatan', 'ndvi', 'lst', 'skor', 'urgensi'];
-    const key = keys[colIndex];
-    
-    state.analyticsData.sort((a, b) => {
-        if (typeof a[key] === 'string') {
-            return sortAsc ? a[key].localeCompare(b[key]) : b[key].localeCompare(a[key]);
-        }
-        return sortAsc ? a[key] - b[key] : b[key] - a[key];
-    });
-    
-    sortAsc = !sortAsc;
-    filterTable(); // Re-render with active filters
-}
-
-
-// ============================================================================
-// 6. MODAL & UTILS
-// ============================================================================
-
-function showKecamatanModal(d) {
-    const modal = document.getElementById('kec-modal');
-    
-    document.getElementById('modal-header').innerHTML = `
-        <div class="modal-kec-name">Kecamatan ${d.kecamatan}</div>
-        <div class="badge-urgency ${d.urgensi === 'HIGH PRIORITY' ? 'badge-high' : d.urgensi === 'MEDIUM PRIORITY' ? 'badge-medium' : 'badge-low'}">
-            ● ${d.urgensi} (Skor: ${d.skor})
-        </div>
-    `;
-
-    document.getElementById('modal-body').innerHTML = `
-        <div class="modal-stat-grid">
-            <div class="modal-stat">
-                <div class="modal-stat-label">RTH Aktual (AI)</div>
-                <div class="modal-stat-value">${d.rasio_rth_ndvi}%</div>
-            </div>
-            <div class="modal-stat">
-                <div class="modal-stat-label">Suhu Permukaan</div>
-                <div class="modal-stat-value">${d.lst}°C</div>
-            </div>
-            <div class="modal-stat">
-                <div class="modal-stat-label">Kepadatan Penduduk</div>
-                <div class="modal-stat-value" style="color:var(--text-primary); font-size:16px;">${d.kepadatan.toLocaleString()} <span style="font-size:12px;color:var(--text-muted)">jiwa/km²</span></div>
-            </div>
-            <div class="modal-stat">
-                <div class="modal-stat-label">RTH Data Publik</div>
-                <div class="modal-stat-value" style="color:var(--text-primary); font-size:16px;">${d.rasio_rth}%</div>
-            </div>
-        </div>
-        <div class="modal-rekomendasi">
-            <strong>Rekomendasi AI:</strong><br>
-            ${d.urgensi === 'HIGH PRIORITY' 
-                ? 'Sangat kritis. Kepadatan tinggi dan minim vegetasi memicu efek Urban Heat Island. Prioritaskan konversi lahan idle, pembangunan taman kantong (pocket parks), dan green roof.' 
-                : d.urgensi === 'MEDIUM PRIORITY'
-                ? 'Mendekati ambang batas aman. Fokus pada pemeliharaan koridor hijau jalan raya dan optimalisasi sempadan sungai.'
-                : 'Kondisi RTH relatif memadai (>25%). Pertahankan dan fokus pada peningkatan kualitas ekologi dan keanekaragaman hayati taman.'}
-        </div>
-    `;
-    
-    modal.classList.add('open');
-}
-
-window.closeModal = function() {
-    document.getElementById('kec-modal').classList.remove('open');
-    // Kembalikan metrik ke rata-rata kota
-    updateGlobalMetrics();
-}
-
-
-// ============================================================================
-// 7. INITIALIZATION
-// ============================================================================
-
-async function bootstrap() {
-    try {
-        // 1. Fetch data dari backend (Task 3)
-        state.analyticsData = await fetchAnalyticsData();
-        
-        // 2. Format / siapkan GeoJSON untuk Peta
-        state.geojsonData = await fetchGeoJSON();
-        
-        // 3. Render Komponen
-        updateGlobalMetrics();
-        initMap();
-        renderHeatmap(); // Default layer
-        renderCharts();
-        renderTable();
-        
-        console.log("🌿 EcoSpatial Dashboard Initialized Successfully.");
-        
-    } catch (error) {
-        console.error("Gagal menginisialisasi dashboard:", error);
-        alert("Gagal memuat data dari Lakehouse. Cek console untuk detail.");
-    }
-}
-
-// Start application
-document.addEventListener('DOMContentLoaded', bootstrap);
