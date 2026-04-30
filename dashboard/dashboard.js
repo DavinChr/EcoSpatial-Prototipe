@@ -10,19 +10,58 @@ const state = {
     selectedKecamatan: 'ALL'
 };
 
-// Simulasi data untuk 10 Kecamatan dengan delta NDVI dan selisih data
-const DUMMY_DATA = [
-    { kecamatan: 'Andir', rth_admin: 15.0, rth_ai: 8.5, ndvi_delta: -4.2, temp_avg: 32.4, lat: -6.914, lng: 107.585 },
-    { kecamatan: 'Astana Anyar', rth_admin: 13.5, rth_ai: 7.1, ndvi_delta: -5.5, temp_avg: 33.1, lat: -6.932, lng: 107.598 },
-    { kecamatan: 'Babakan Ciparay', rth_admin: 16.8, rth_ai: 10.2, ndvi_delta: -3.8, temp_avg: 31.8, lat: -6.939, lng: 107.575 },
-    { kecamatan: 'Bandung Kidul', rth_admin: 21.0, rth_ai: 18.5, ndvi_delta: -1.0, temp_avg: 29.5, lat: -6.965, lng: 107.625 },
-    { kecamatan: 'Buahbatu', rth_admin: 31.2, rth_ai: 28.5, ndvi_delta: 0.5, temp_avg: 27.5, lat: -6.950, lng: 107.645 },
-    { kecamatan: 'Coblong', rth_admin: 45.5, rth_ai: 40.2, ndvi_delta: -1.2, temp_avg: 25.5, lat: -6.885, lng: 107.613 },
-    { kecamatan: 'Kiaracondong', rth_admin: 15.0, rth_ai: 6.5, ndvi_delta: -6.1, temp_avg: 32.5, lat: -6.925, lng: 107.643 },
-    { kecamatan: 'Sumur Bandung', rth_admin: 20.1, rth_ai: 12.5, ndvi_delta: -3.2, temp_avg: 29.8, lat: -6.916, lng: 107.610 },
-    { kecamatan: 'Ujungberung', rth_admin: 23.5, rth_ai: 21.5, ndvi_delta: -0.5, temp_avg: 28.5, lat: -6.905, lng: 107.705 },
-    { kecamatan: 'Antapani', rth_admin: 20.5, rth_ai: 18.2, ndvi_delta: -1.5, temp_avg: 29.2, lat: -6.918, lng: 107.656 }
+// Data 30 Kecamatan (diambil dari Lakehouse backend sesuai data awal)
+const ORIGINAL_DATA = [
+    { kecamatan: 'Andir', rth_admin: 15.2, rth_ai: 12.5, kepadatan: 23577, ndvi: 0.15, temp_avg: 32.4, skor: 85, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Astana Anyar', rth_admin: 13.5, rth_ai: 10.1, kepadatan: 27468, ndvi: 0.13, temp_avg: 33.1, skor: 92, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Babakan Ciparay', rth_admin: 16.8, rth_ai: 14.2, kepadatan: 20160, ndvi: 0.14, temp_avg: 31.8, skor: 80, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Bandung Kidul', rth_admin: 21.0, rth_ai: 18.5, kepadatan: 11301, ndvi: 0.20, temp_avg: 29.5, skor: 55, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Bandung Kulon', rth_admin: 18.4, rth_ai: 16.3, kepadatan: 19656, ndvi: 0.17, temp_avg: 30.2, skor: 68, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Bandung Wetan', rth_admin: 22.5, rth_ai: 20.1, kepadatan: 8391, ndvi: 0.21, temp_avg: 28.9, skor: 45, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Batununggal', rth_admin: 14.1, rth_ai: 11.2, kepadatan: 25236, ndvi: 0.12, temp_avg: 32.8, skor: 88, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Bojongloa Kaler', rth_admin: 12.0, rth_ai: 9.5, kepadatan: 39906, ndvi: 0.10, temp_avg: 34.0, skor: 98, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Bojongloa Kidul', rth_admin: 17.5, rth_ai: 15.1, kepadatan: 16907, ndvi: 0.16, temp_avg: 30.5, skor: 65, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Buahbatu', rth_admin: 31.2, rth_ai: 28.5, kepadatan: 13955, ndvi: 0.30, temp_avg: 27.5, skor: 25, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Cibeunying Kaler', rth_admin: 35.8, rth_ai: 32.1, kepadatan: 15260, ndvi: 0.35, temp_avg: 26.8, skor: 20, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Cibeunying Kidul', rth_admin: 16.5, rth_ai: 13.8, kepadatan: 27432, ndvi: 0.16, temp_avg: 31.5, skor: 82, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Cibiru', rth_admin: 29.5, rth_ai: 26.4, kepadatan: 11079, ndvi: 0.29, temp_avg: 27.8, skor: 30, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Cicendo', rth_admin: 16.9, rth_ai: 14.5, kepadatan: 12363, ndvi: 0.16, temp_avg: 30.8, skor: 70, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Cidadap', rth_admin: 60.1, rth_ai: 55.2, kepadatan: 6467, ndvi: 0.58, temp_avg: 24.5, skor: 5, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Cinambo', rth_admin: 42.0, rth_ai: 38.5, kepadatan: 6020, ndvi: 0.40, temp_avg: 26.0, skor: 15, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Coblong', rth_admin: 45.5, rth_ai: 40.2, kepadatan: 15740, ndvi: 0.42, temp_avg: 25.5, skor: 18, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Gedebage', rth_admin: 46.8, rth_ai: 42.1, kepadatan: 4191, ndvi: 0.44, temp_avg: 25.2, skor: 12, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Kiaracondong', rth_admin: 15.0, rth_ai: 12.5, kepadatan: 22692, ndvi: 0.13, temp_avg: 32.5, skor: 86, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Lengkong', rth_admin: 17.8, rth_ai: 15.2, kepadatan: 12058, ndvi: 0.15, temp_avg: 31.0, skor: 72, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Mandalajati', rth_admin: 38.2, rth_ai: 34.5, kepadatan: 15319, ndvi: 0.36, temp_avg: 26.5, skor: 22, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Panyileukan', rth_admin: 28.5, rth_ai: 25.8, kepadatan: 7643, ndvi: 0.28, temp_avg: 28.0, skor: 32, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Rancasari', rth_admin: 32.4, rth_ai: 29.5, kepadatan: 12335, ndvi: 0.31, temp_avg: 27.2, skor: 28, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Regol', rth_admin: 16.2, rth_ai: 13.5, kepadatan: 17048, ndvi: 0.14, temp_avg: 31.8, skor: 78, urgensi: 'HIGH PRIORITY' },
+    { kecamatan: 'Sukajadi', rth_admin: 19.5, rth_ai: 16.8, kepadatan: 19463, ndvi: 0.17, temp_avg: 30.1, skor: 66, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Sukasari', rth_admin: 40.2, rth_ai: 36.5, kepadatan: 12201, ndvi: 0.38, temp_avg: 26.2, skor: 20, urgensi: 'LOW PRIORITY' },
+    { kecamatan: 'Sumur Bandung', rth_admin: 20.1, rth_ai: 17.5, kepadatan: 10866, ndvi: 0.18, temp_avg: 29.8, skor: 58, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Ujungberung', rth_admin: 26.5, rth_ai: 23.5, kepadatan: 14424, ndvi: 0.25, temp_avg: 28.5, skor: 38, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Antapani', rth_admin: 23.2, rth_ai: 20.5, kepadatan: 19046, ndvi: 0.22, temp_avg: 29.2, skor: 50, urgensi: 'MEDIUM PRIORITY' },
+    { kecamatan: 'Arcamanik', rth_admin: 35.0, rth_ai: 31.5, kepadatan: 10505, ndvi: 0.33, temp_avg: 26.9, skor: 24, urgensi: 'LOW PRIORITY' }
 ];
+
+// Enrich data dengan lat/lng (posisi Bandung) dan ndvi_delta
+const baseLat = -6.9147;
+const baseLng = 107.6098;
+
+const DUMMY_DATA = ORIGINAL_DATA.map((d, i) => {
+    // Generate pseudo-random lat/lng di sekitar Bandung berdasarkan index
+    const seed = i * 1.5;
+    const lat = baseLat + (Math.sin(seed) * 0.05);
+    const lng = baseLng + (Math.cos(seed) * 0.05);
+    
+    // Hitung Penurunan NDVI Delta secara logis: kecamatan urgensi tinggi mengalami delta negatif paling besar
+    let delta = 0;
+    if (d.urgensi === 'HIGH PRIORITY') delta = - (Math.random() * 3 + 4); // -4% to -7%
+    else if (d.urgensi === 'MEDIUM PRIORITY') delta = - (Math.random() * 2 + 1.5); // -1.5% to -3.5%
+    else delta = (Math.random() * 2 - 0.5); // -0.5% to 1.5%
+
+    return { ...d, lat, lng, ndvi_delta: parseFloat(delta.toFixed(1)) };
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('header-date').innerText = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
