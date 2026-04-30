@@ -164,9 +164,9 @@ function initMap() {
     state.layerAI = L.layerGroup();
 
     // Task 2: GeoJSON Boundary Fetch & Interaction Overlay
-    fetch('https://raw.githubusercontent.com/tigorlazuardi/bandung/master/bandung.geojson')
+    fetch('./data/bandung.geojson')
         .then(res => {
-            if (!res.ok) throw new Error("Gagal fetch batas geojson");
+            if (!res.ok) throw new Error("Gagal fetch batas geojson lokal");
             return res.json();
         })
         .then(data => {
