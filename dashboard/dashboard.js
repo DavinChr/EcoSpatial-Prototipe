@@ -160,6 +160,15 @@ function initMap() {
         attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(state.map);
 
+    // Fungsi Layering Choropleth Warna-warni (Gradient Light Green to Dark Blue)
+    function getChoroplethColor(value) {
+        return value > 25 ? '#08519c' : // Biru Gelap (RTH Tinggi)
+               value > 20 ? '#3182bd' : // Biru Sedang
+               value > 15 ? '#6baed6' : // Biru Muda
+               value > 10 ? '#a1d99b' : // Hijau Muda
+                            '#c7e9c0';  // Hijau Pucat (RTH Sangat Rendah)
+    }
+
     state.layerAdmin = L.layerGroup();
     state.layerAI = L.layerGroup();
 
@@ -172,21 +181,25 @@ function initMap() {
         .then(data => {
             const geojsonLayer = L.geoJSON(data, {
                 style: function (feature) {
+                    const kecName = feature.properties.KECAMATAN || feature.properties.kecamatan || feature.properties.name || "Kecamatan";
+                    const matchingData = DUMMY_DATA.find(d => d.kecamatan.toLowerCase() === kecName.toLowerCase());
+                    const rthVal = matchingData ? matchingData.rth_ai : 0;
+                    
                     return {
-                        color: '#059669', // Border hijau emerald yang tegas
-                        fillColor: '#34d399',
-                        fillOpacity: 0.1,
-                        weight: 2
+                        color: '#ffffff', // Outline putih tegas antar wilayah
+                        fillColor: getChoroplethColor(rthVal), // Layering warna sesuai metrik
+                        fillOpacity: 0.85,
+                        weight: 1.5
                     };
                 },
                 onEachFeature: function (feature, layer) {
-                    const kecName = feature.properties.KECAMATAN || feature.properties.name || "Kecamatan";
+                    const kecName = feature.properties.KECAMATAN || feature.properties.kecamatan || feature.properties.name || "Kecamatan";
                     
                     // Interaction Overlay (Hover & Click)
                     layer.on({
                         mouseover: function(e) {
                             const l = e.target;
-                            l.setStyle({ fillOpacity: 0.4, weight: 3 });
+                            l.setStyle({ fillOpacity: 1, weight: 3, color: '#000000' });
                             l.bringToFront();
                         },
                         mouseout: function(e) {
@@ -209,12 +222,12 @@ function initMap() {
             console.warn("Fallback ke poligon sirkular:", err);
             DUMMY_DATA.forEach(d => {
                 const poly = L.circle([d.lat, d.lng], {
-                    color: '#059669',
-                    fillColor: '#34d399',
-                    fillOpacity: 0.3,
-                    weight: 2,
+                    color: '#ffffff',
+                    fillColor: getChoroplethColor(d.rth_ai), // Layering warna pada fallback
+                    fillOpacity: 0.85,
+                    weight: 1.5,
                     radius: d.rth_admin * 60
-                }).bindPopup(`<b>${d.kecamatan}</b><br>Klaim RTH Pemerintah: ${d.rth_admin}%`);
+                }).bindPopup(`<b>${d.kecamatan}</b><br>Kondisi RTH (AI): ${d.rth_ai}%`);
                 state.layerAdmin.addLayer(poly);
             });
         });
