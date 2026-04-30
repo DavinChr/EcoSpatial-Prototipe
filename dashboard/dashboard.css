@@ -93,6 +93,23 @@ body {
   flex-direction: column;
   gap: 24px;
   flex-shrink: 0;
+  overflow-y: auto;
+  padding-right: 8px; /* space for scrollbar */
+}
+
+/* Custom Scrollbar */
+.sidebar::-webkit-scrollbar, .tab-pane::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-track, .tab-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb, .tab-pane::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover, .tab-pane::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .insight-box {
